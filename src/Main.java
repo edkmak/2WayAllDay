@@ -9,27 +9,42 @@ import model.Intersection;
 import model.StopSign;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 
 public class Main {
 
 
-    public static void getStopSignData() throws Exception {
-        Soda2Consumer consumer = Soda2Consumer.newConsumer("https://data.sfgov.org/",
-                "edkmak@gmail.com", "Glasses1!", "IXr4p7R2f06HU5bzgQaM28DS7");
+    public static List<StopSign> getStopSignData() throws Exception {
 
-        //ClientResponse response = consumer.query("s4tx-xevz", HttpLowLevel.JSON_TYPE, SoqlQuery.SELECT_ALL);
-        //String payload = response.getEntity(String.class);
-        //System.out.println(payload);
 
+        Properties prop = new Properties();
+        String propFileName = "../resources/config.properties";
+        String[] credentials = new String[3];
+        try {
+            File file = new File("./resources/config.properties");
+            FileInputStream fileInput = new FileInputStream(file);
+            Properties properties = new Properties();
+            properties.load(fileInput);
+            fileInput.close();
+
+            Enumeration enuKeys = properties.keys();
+
+            int i =0;
+            while (enuKeys.hasMoreElements()) {
+                String key = (String) enuKeys.nextElement();
+                String value = properties.getProperty(key);
+                credentials[i++] = value;
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        Soda2Consumer consumer = Soda2Consumer.newConsumer("https://data.sfgov.org/", credentials[0], credentials[1], credentials[2]);
         List<StopSign> stopSigns; //= consumer.query("s4tx-xevz", SoqlQuery.SELECT_ALL, StopSign.LIST_TYPE);
         //System.out.println(stopSigns.toString());
-
-        //String avenuesWhereClause = avenueString();
-        //String streetsWhereClause = streetsString();
 
         SoqlQuery   getAvenuesQuery = new SoqlQueryBuilder()
                 .addSelectPhrase("object_id")
@@ -44,21 +59,12 @@ public class Main {
                 .addOrderByPhrase(new OrderByClause(SortOrder.Descending, "object_id"))
                 .build();
         stopSigns = consumer.query("s4tx-xevz", getAvenuesQuery, StopSign.LIST_TYPE);
-        for(StopSign sign : stopSigns){
-            System.out.println(sign);
-        }
-        //insert into intersections.
-        List<Intersection> intersections = new ArrayList<>();
-        for(StopSign sign : stopSigns){
-            //Intersection intersection = new Intersection();
-        }
-        //System.out.println(stopSigns.toString());
-        //formulate graph of Intersections.
+        return stopSigns;
     }
 
 
     private static String avenueString(String streetType){
-        int start_ave = 36;
+        int start_ave = 37;
         int end_ave = 48;
         StringBuffer sb = new StringBuffer();
         for(int i = start_ave; i <= end_ave; i++) {
@@ -101,13 +107,34 @@ public class Main {
         return sb.toString();
     }
 
+    public static void buildIntersections(List<StopSign> stopSigns){
+        List<Intersection> intersectionsMap = new ArrayList<Intersection>();
+        //build intersections
+        for(StopSign stopSign : stopSigns){
+            Intersection intersection = new Intersection(stopSign.getStreet(), stopSign.getCrossStreet());
+            if(intersectionsMap.contains(intersection)){
+                Intersection i = intersectionsMap.get(intersectionsMap.indexOf(intersection));
+                i.add(stopSign);
+            }else{
+                intersectionsMap.add(intersection);
+                intersection.add(stopSign);
+            }
+        }
+        Collections.sort(intersectionsMap);
+        Iterator<Intersection> i = intersectionsMap.iterator();
+        while(i.hasNext()){
+            System.out.println(i.next());
+        }
+    }
+
+    public static void createGraph(){
+        Map<Intersection, List<Intersection>> map = new HashMap<Intersection, List<Intersection>>();
+    }
+
     public static void main(String[] args) throws Exception {
-        /*String avenuesWhereClause = avenueString();
-        String streetsWhereClause = streetsString();
-        System.out.println(avenuesWhereClause + " OR " + streetsWhereClause);
-        System.out.println(avenuesWhereClause);*/
-        getStopSignData();
-        //System.out.println(buildWhere());
-        //System.out.println(streetsString());
+        List<StopSign> stopSigns = getStopSignData();
+        //put all stop sign data into intersections
+        buildIntersections(stopSigns);
+
     }
 }

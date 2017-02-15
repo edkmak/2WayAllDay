@@ -10,6 +10,7 @@ import java.util.List;
 /**
  * Created by edwin on 2/1/17.
  * This java class represents a single stop sign in the Outer Sunset in San Francisco.
+ * Data taken from Socrata OpenData provided by SF gov
  */
 
 @JsonIgnoreProperties(ignoreUnknown=true)
@@ -46,12 +47,24 @@ public class StopSign {
         return object_id;
     }
 
+    //returns the ALPHABETICAL street name (
     public String getStreet(){
-        return street;
+        if(Character.isDigit(street.charAt(0))){
+            return cross_street;
+        }
+        else{
+            return street;
+        }
     }
 
+    //returns the avenue ( numerical)
     public String getCrossStreet(){
-        return cross_street;
+        if(Character.isDigit(street.charAt(0))){
+            return street;
+        }
+        else{
+            return cross_street;
+        }
     }
 
     public String getDirection(){
